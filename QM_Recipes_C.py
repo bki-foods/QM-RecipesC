@@ -44,6 +44,7 @@ query = """ WITH PBOM AS (
             
             SELECT
             	I.[No.] AS [ItemNo]
+				,I.[Withdrawal Status] AS [Status]
             	,SUM(ISNULL(VE.[Count],0)) AS [Count]
 				,DATEDIFF(d,I.[Oprettet den],getdate()) AS [Days]
             	,SUM(ISNULL(CASE
@@ -71,13 +72,14 @@ query = """ WITH PBOM AS (
             WHERE I.[No.] LIKE '1040%'
             GROUP BY
             	I.[No.]
-				,I.[Oprettet den] """
+				,I.[Oprettet den]
+				,I.[Withdrawal Status] """
 
 # =============================================================================
 # Read query and other variables
 # =============================================================================
 # change env variable below to switch between dev and prod SQL tables for inserts
-env = 'dev'             # dev = test || cp = prod
+env = 'seg'             # dev = test || seg = prod
 # Variables for inserting data into sql database:
 params = urllib.parse.quote_plus('DRIVER={SQL Server Native Client 10.0};SERVER=sqlsrv04;DATABASE=BKI_Datastore;Trusted_Connection=yes')
 engine = create_engine('mssql+pyodbc:///?odbc_connect=%s' % params)
@@ -150,6 +152,23 @@ if len(df_sales) != 0:
 # =============================================================================
 
 # Create dataframe and skip if it's empty:
-df_no_sales = df.loc[df['Count'] == 0]
-if len(df_no_sales) != 0:
+df_no_sale = df.loc[df['Count'] == 0]
+if len(df_no_sale) != 0:
+    # Create columns with variables and relevant score
+    df_no_sale.loc[:, 'Timestamp'] = now
+    df_no_sale.loc[:, 'Score'] = df_no_sale['Days'].apply(lambda x: 1 if x > 90 else 2)
+    df_no_sale.loc[df_no_sale['Status'] == 2, 'Score'] = 0
+    df_no_sale.loc[:, 'Type'] = seg_type
+    df_no_sale.loc[:, 'ExecutionId'] = execution_id
+    df_no_sale.loc[:, 'Script'] = script_name
+    # Insert dataframe to SQL database:
+    insert_sql(df_no_sale[cols_no_sale], 'ItemSegmentation', env)
 
+# =============================================================================
+# Write to SQL log
+# =============================================================================
+        
+df_log = pd.DataFrame(data= {'Date':now, 'Event':script_name, 'Note': 'Execution id: ' + str(execution_id)}, index=[0])
+insert_sql(df_log, 'Log', 'dbo')
+    
+    
