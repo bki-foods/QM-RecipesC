@@ -81,7 +81,7 @@ query = """ WITH PBOM AS (
 # change env variable below to switch between dev and prod SQL tables for inserts
 env = 'seg'             # dev = test || seg = prod
 # Variables for inserting data into sql database:
-params = urllib.parse.quote_plus('DRIVER={SQL Server Native Client 10.0};SERVER=sqlsrv04;DATABASE=BKI_Datastore;Trusted_Connection=yes')
+params = urllib.parse.quote_plus('DRIVER={SQL Server Native Client 11.0};SERVER=sqlsrv04;DATABASE=BKI_Datastore;Trusted_Connection=yes')
 engine = create_engine('mssql+pyodbc:///?odbc_connect=%s' % params)
 # Other variables:
 now = datetime.datetime.now()
