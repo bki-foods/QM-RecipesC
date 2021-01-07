@@ -70,6 +70,7 @@ query = """ WITH PBOM AS (
             LEFT JOIN  VE
             	ON PBOM.[Top level item] = VE.[Item No.]
             WHERE I.[No.] LIKE '1040%'
+				AND I.[DW_Account] = 'BKI foods a/s'
             GROUP BY
             	I.[No.]
 				,I.[Oprettet den]
