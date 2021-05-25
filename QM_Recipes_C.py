@@ -36,7 +36,7 @@ query = """ WITH PBOM AS (
             	,SUM([Cost Amount (Actual) korr. export]) AS [Cost Amount (Actual) korr. export]
             FROM [NAV].[Value Entry_V]
             WHERE
-            	[Item Ledger Entry Type] IN (-1,1)
+            	[Item Ledger Entry Type] = 1
             	AND [Posting Date] >= DATEADD(year, -1, getdate())
             GROUP BY
             	[Item No.]
