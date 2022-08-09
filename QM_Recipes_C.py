@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from sqlalchemy import create_engine
-import pyodbc
 import urllib
 import pandas as pd
 import datetime
@@ -12,9 +11,16 @@ import datetime
 # =============================================================================
 
 # Define server connection and SQL query:
-server = r'sqlsrv04\tx'
-db = 'TXprodSTAGE'
-con = pyodbc.connect('DRIVER={SQL Server};SERVER=' + server + ';DATABASE=' + db)
+server_tx = r"sqlsrv04\tx"
+db_tx_prod_stage = "TXprodStage"
+params_tx_prod_stage = f"DRIVER={{SQL Server Native Client 11.0}};SERVER={server_tx};DATABASE={db_tx_prod_stage};trusted_connection=yes"
+con_tx_prod_stage = create_engine('mssql+pyodbc:///?odbc_connect=%s' % urllib.parse.quote_plus(params_tx_prod_stage))
+
+server_04 = "sqlsrv04"
+db_ds = "BKI_Datastore"
+params_ds = f"DRIVER={{SQL Server Native Client 11.0}};SERVER={server_04};DATABASE={db_ds};trusted_connection=yes"
+con_ds = create_engine('mssql+pyodbc:///?odbc_connect=%s' % urllib.parse.quote_plus(params_ds))
+
 query = """ WITH PBOM AS (
             SELECT
             	[Top level item]
@@ -81,9 +87,6 @@ query = """ WITH PBOM AS (
 # =============================================================================
 # change env variable below to switch between dev and prod SQL tables for inserts
 env = 'seg'             # dev = test || seg = prod
-# Variables for inserting data into sql database:
-params = urllib.parse.quote_plus('DRIVER={SQL Server Native Client 11.0};SERVER=sqlsrv04;DATABASE=BKI_Datastore;Trusted_Connection=yes')
-engine = create_engine('mssql+pyodbc:///?odbc_connect=%s' % params)
 # Other variables:
 now = datetime.datetime.now()
 execution_id = int(now.timestamp())
@@ -94,7 +97,7 @@ cols_no_sale = ['ExecutionId', 'Timestamp', 'ItemNo', 'Score', 'Type', 'Script']
 cols_quan = (['ExecutionId', 'Timestamp', 'Type', 'Quantile', 'Quantity',
              'MonetaryValue'])
 # Read query into dataframe and create unique list for iteration and empty dataframes:
-df = pd.read_sql(query, con)
+df = pd.read_sql(query, con_tx_prod_stage)
 df['MonetaryValue'] = df['Amount'] - df['Cost']
 
 
@@ -115,7 +118,7 @@ def qm_score(x, para, dic):
 
 # Insert data into sql database
 def insert_sql(dataframe, table_name, schema):
-    dataframe.to_sql(table_name, con=engine, schema=schema, if_exists='append', index=False)
+    dataframe.to_sql(table_name, con=con_ds, schema=schema, if_exists='append', index=False)
     
 
 # =============================================================================
